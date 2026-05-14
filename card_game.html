@@ -8,11 +8,18 @@
   .stage-info { font-weight: 500; color: #fff; font-size: 30px; }
   .hint { font-size: 26px; color: #c0c0c0; text-align: center; margin: 10px 0 20px; min-height: 24px; padding: 0 12px; }
   .answer-row, .working-row, .palette { display: flex; justify-content: center; gap: var(--slot-gap); flex-wrap: wrap; }
-  .answer-row { margin-bottom: 14px; }
+  .answer-row { margin-bottom: 8px; }
   .slot { width: var(--slot-w); height: var(--slot-h); border-radius: 10px; border: 1px solid #3a3a3a; background: #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #888; position: relative; transition: transform 0.25s ease, background 0.25s; }
   .slot.filled { background: var(--slot-color, #ccc); border-color: transparent; color: transparent; }
   .slot.revealed { animation: flip 0.5s ease; }
   @keyframes flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+
+  /* 問號牌下方的正確答案文字 */
+  .answer-names { display: flex; justify-content: center; gap: var(--slot-gap); flex-wrap: wrap; margin-bottom: 14px; min-height: 40px; }
+  .name-cell { width: var(--slot-w); text-align: center; font-size: 16px; font-weight: 600; color: #fff; transition: opacity 0.4s ease; letter-spacing: 0.1em; text-shadow: 0 0 10px rgba(255,255,255,0.22); }
+  .name-cell.show { animation: fadeUp 0.5s ease; }
+  @keyframes fadeUp { 0% { opacity: 0; transform: translateY(-8px); } 100% { opacity: 1; transform: translateY(0); } }
+
   .feedback { font-size: 17px; color: #c0c0c0; margin-left: 10px; min-width: 80px; display: flex; align-items: center; }
   .feedback .a { color: #6dd3a8; font-weight: 500; }
   .feedback .b { color: #f0c674; font-weight: 500; }
@@ -44,15 +51,18 @@
   @media (max-width: 600px) {
     .game-wrap { width: 92%; --slot-w: 130px; --slot-h: 210px; --slot-gap: 20px; }
     .slot { font-size: 42px; }
+    .name-cell { font-size: 28px; }
   }
   @media (max-width: 440px) {
     .game-wrap { --slot-w: 72px; --slot-h: 120px; --slot-gap: 10px; }
     .slot { font-size: 36px; }
+    .name-cell { font-size: 22px; }
     .btn { padding: 14px 24px; font-size: 17px; min-width: 110px; }
   }
   @media (max-width: 360px) {
     .game-wrap { --slot-w: 60px; --slot-h: 100px; --slot-gap: 8px; }
     .slot { font-size: 32px; }
+    .name-cell { font-size: 18px; }
   }
 </style>
 
@@ -64,6 +74,7 @@
     </div>
 
     <div class="answer-row" id="answer-row"></div>
+    <div class="answer-names" id="answer-names"></div>
     <div class="hint" id="hint">猜出正確順序就能解鎖顏色</div>
 
     <div class="history" id="history"></div>
@@ -89,7 +100,6 @@
 
 <script>
 (function(){
-  // 強制整個頁面背景變黑(突破 iframe 限制)
   try {
     document.documentElement.style.background = '#000';
     document.body.style.background = '#000';
@@ -97,11 +107,11 @@
   } catch(e) {}
 
   const COLORS = [
-    { name: 'red',    hex: '#E24B4A' },
-    { name: 'blue',   hex: '#378ADD' },
-    { name: 'yellow', hex: '#EF9F27' },
-    { name: 'green',  hex: '#97C459' },
-    { name: 'purple', hex: '#7F77DD' }
+    { name: 'red',    hex: '#E24B4A', zh: '紅' },
+    { name: 'blue',   hex: '#378ADD', zh: '藍' },
+    { name: 'yellow', hex: '#EF9F27', zh: '黃' },
+    { name: 'green',  hex: '#97C459', zh: '綠' },
+    { name: 'purple', hex: '#7F77DD', zh: '紫' }
   ];
 
   const STAGES = [
@@ -127,6 +137,7 @@
   const $stageInfo = document.getElementById('stage-info');
   const $attempts = document.getElementById('attempts');
   const $answerRow = document.getElementById('answer-row');
+  const $answerNames = document.getElementById('answer-names');
   const $hint = document.getElementById('hint');
   const $history = document.getElementById('history');
   const $workingRow = document.getElementById('working-row');
@@ -172,6 +183,11 @@
     return c ? c.hex : '#ccc';
   }
 
+  function zhOf(name) {
+    const c = COLORS.find(c => c.name === name);
+    return c ? c.zh : '';
+  }
+
   function evaluate(guess) {
     let A = 0, B = 0;
     for (let i = 0; i < answer.length; i++) {
@@ -195,6 +211,18 @@
         slot.textContent = '?';
       }
       $answerRow.appendChild(slot);
+    }
+
+    // 問號牌下方直接顯示正確答案文字
+    $answerNames.innerHTML = '';
+    for (let i = 0; i < size; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'name-cell';
+      cell.textContent = zhOf(answer[i]);
+      if (solved) {
+        cell.classList.add('show');
+      }
+      $answerNames.appendChild(cell);
     }
 
     $attempts.textContent = `嘗試次數: ${attempts}`;
